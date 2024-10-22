@@ -322,6 +322,68 @@ public class AutoCommon extends LinearOpMode {
         }
     }
 
+    protected void lineFollowerCalibration() {
+        robot.imu.resetYaw();
+        double power = 0.15;
+        double currentHeading = 0.0;
+        int currentBrightness = robot.colorSensor.alpha();
+        int currentMax = robot.colorSensor.alpha();
+        int currentMin =  robot.colorSensor.alpha();
+        while (opModeIsActive() && Math.abs(currentHeading) < (Math.abs(45) - ANGLE_OVERSHOOT)) {
+            currentHeading = Math.abs(robot.getHeading());
+            currentBrightness = robot.colorSensor.alpha();
+            currentMax = Math.max(currentBrightness, currentMax);
+            currentMin = Math.min(currentBrightness, currentMin);
+            robot.startMove(0,0,-power);
+        }
+        robot.startMove(0,0,0);
+        sleep(400);
+        robot.imu.resetYaw();
+        currentHeading = 0.0;
+        while (opModeIsActive() && Math.abs(currentHeading) < (Math.abs(90) - ANGLE_OVERSHOOT)) {
+            currentHeading = Math.abs(robot.getHeading());
+            currentBrightness = robot.colorSensor.alpha();
+            currentMax = Math.max(currentBrightness, currentMax);
+            currentMin = Math.min(currentBrightness, currentMin);
+            robot.startMove(0,0,power);
+        }
+        robot.startMove(0,0,0);
+        sleep(400);
+        robot.imu.resetYaw();
+        currentHeading = 0.0;
+        while (opModeIsActive() && Math.abs(currentHeading) < (Math.abs(45) - ANGLE_OVERSHOOT)) {
+            currentHeading = Math.abs(robot.getHeading());
+            currentBrightness = robot.colorSensor.alpha();
+            currentMax = Math.max(currentBrightness, currentMax);
+            currentMin = Math.min(currentBrightness, currentMin);
+            robot.startMove(0,0,-power);
+        }
+        robot.maxBrightness = currentMax;
+        robot.maxBrightness = currentMin;
+        robot.startMove(0,0,0);
+        sleep(1000);
+    }
+
+    protected void followLineP() {
+        double KP = 0;
+        double maxError = 0.05;
+        double power = 0.3;
+        int range = 50;
+        robot.startMove(power,0,0);
+        int currentBrightness = robot.colorSensor.alpha();
+        int bar = (robot.maxBrightness - robot.minBrightness)/2;
+        while (opModeIsActive()) {
+            currentBrightness = robot.colorSensor.alpha();
+            KP = (1.0 / ((robot.maxBrightness - robot.minBrightness) / 2.0)) * maxError;
+            if (currentBrightness > (bar + range)) {
+                robot.motorAux.setPower(KP);
+            } else if (currentBrightness < (bar - range)) {
+                robot.motorAux.setPower(-1*KP);
+            }
+
+        }
+        robot.startMove(0,0,0);
+    }
 }
 
 
