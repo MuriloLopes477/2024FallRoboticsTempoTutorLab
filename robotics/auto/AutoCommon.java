@@ -4,8 +4,12 @@ package edu.elon.robotics.auto;
  * General autonomous methods.
  */
 
+import android.util.Log;
+
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.util.ElapsedTime;
+import com.sun.source.tree.WhileLoopTree;
 
 import edu.elon.robotics.KiwiDriveRatio;
 import edu.elon.robotics.RobotHardware;
@@ -359,30 +363,157 @@ public class AutoCommon extends LinearOpMode {
             robot.startMove(0,0,-power);
         }
         robot.maxBrightness = currentMax;
-        robot.maxBrightness = currentMin;
+        robot.minBrightness = currentMin;
         robot.startMove(0,0,0);
         sleep(1000);
     }
 
-    protected void followLineP() {
-        double KP = 0;
-        double maxError = 0.05;
-        double power = 0.3;
-        int range = 50;
-        robot.startMove(power,0,0);
-        int currentBrightness = robot.colorSensor.alpha();
-        int bar = (robot.maxBrightness - robot.minBrightness)/2;
-        while (opModeIsActive()) {
-            currentBrightness = robot.colorSensor.alpha();
-            KP = (1.0 / ((robot.maxBrightness - robot.minBrightness) / 2.0)) * maxError;
-            if (currentBrightness > (bar + range)) {
-                robot.motorAux.setPower(KP);
-            } else if (currentBrightness < (bar - range)) {
-                robot.motorAux.setPower(-1*KP);
-            }
+    protected void followPID() {
+        double KP = 0.000955; // 0.000925
+        double KI = 0.00016;
+        double KD = 0.00002;//0.009;
+        double right_speed;
+        double left_speed;
+        double base_speed = -0.1;
+        double current_brightness;
+        double D_error;
+        double error_sum = 0;
+        double error = 0;
+        double previous_error = 0;
+        double correction;
+        double bar = (robot.maxBrightness - robot.minBrightness) / 1.65;
+        int range = 100;
 
+
+        while (opModeIsActive() && !robot.touchSensor.isPressed()) {
+            current_brightness = robot.colorSensor.alpha();
+
+            error = Math.abs(current_brightness - bar);
+            error_sum = error_sum * 0.8 + error;
+            D_error = Math.abs(error - previous_error);
+            previous_error = error;
+
+            correction = KP * error + KI * error_sum + KD * D_error;
+
+            if (current_brightness > (bar + range)) {
+                robot.startMove(base_speed, 0,correction);
+//                robot.motorLeft.setPower(-1*(base_speed));
+//                robot.motorRight.setPower(base_speed + 3*correction);
+            } else if (current_brightness < bar) {
+                robot.startMove(base_speed, 0,-1*correction);
+//                robot.motorLeft.setPower(-1*(base_speed + 1.5*correction));
+//                robot.motorRight.setPower(base_speed);
+            }else {
+                error_sum = 0;
+                robot.startMove(base_speed, 0,0);
+//                robot.motorLeft.setPower(-1*(0.05 ));
+//                robot.motorRight.setPower(0.05);
+            }
+        }
+    }
+
+    protected void LookingForParking() {
+        robot.startMove(0.15,0,0);
+        double currentBrightness = 0;
+        sleep(100);
+        while (opModeIsActive() && currentBrightness > (robot.maxBrightness-robot.minBrightness)/2) {
+            currentBrightness = robot.colorSensor.alpha();
         }
         robot.startMove(0,0,0);
+        turnIMU(90,.1);
+        robot.startMove(.15, 0,0);
+        //reset encoder
+        //make double that tells us wall distance
+        //make a threashold integer
+        //make a boolean (isHole) - > checks if you are in a hole -> initialized as false
+        while (opModeIsActive() && currentBrightness > (robot.maxBrightness-robot.minBrightness)/2) {
+            currentBrightness = robot.colorSensor.alpha();
+            //Keep track of current tick
+            //Logic 1 -> Logic statements that check if distance sensor is larger than wall distance + threshold AND you are not in a hole.
+            // if logic 1 statement is true, record the tick value and set inHole to true
+            //Logic 2 -> if InHole and distance is < wallDistance + threshhold
+            //set inHole to false
+            // get the the next tick and calculate tick difference
+            //------- to be continued
+
+        }
+
+
+
+    }
+
+    protected void followLineP() {
+        double maxError = 0.1;
+        double diffDivider = 2.3; //-0.1
+
+        double KC =  (1.0 / ((robot.maxBrightness - robot.minBrightness) / 2.0)) * maxError;;
+        double dt = 18;
+
+        double PC = 0.309951955077; //Calculated value
+
+        double driveSpeed = -0.3;
+        double KP = KC * 0.35;//0.6; //0.9
+        double Ki = 0.0;//0.05 * KP * (dt / PC);
+        double Kd = 0;
+
+        int currentBrightness = robot.colorSensor.alpha();
+        int bar = (int) ((robot.maxBrightness - robot.minBrightness)/1.65);
+        int range = (int) 100;//200
+        double error = 0.0;
+        double sumError = 0.0;
+        double diffError = 0.0;
+        double prevError = 0.0;
+        double turn = 0.0;
+
+        double test = 0;
+
+        robot.startMove(KP,0,0);
+
+        ElapsedTime timer = new ElapsedTime();
+        timer.reset();	// resets the timer to 0
+
+        String data ="";
+        int state = 0;
+        while (opModeIsActive() && !robot.touchSensor.isPressed()) {
+//            timer.reset();	// resets the timer to 0
+            currentBrightness = robot.colorSensor.alpha();
+//            System.out.println("P-CONTROL: " + timer.milliseconds() + "," + currentBrightness);
+
+//            error = (currentBrightness < (bar + range) && currentBrightness > (bar - range))? 0: currentBrightness - range;
+            error = currentBrightness - bar;
+            sumError = sumError + error;
+            diffError = error - prevError;
+            prevError = error;
+
+            turn = ((KP * error) + (Ki * sumError) + (Kd * diffError));
+            if (currentBrightness > (bar + range)) {
+                if (state != 1) {test = 0;}
+                state = 1;
+                robot.motorLeft.setPower(-1*Math.abs(0.01 /*+((test-Math.abs(turn))/diffDivider)*/));
+                robot.motorRight.setPower(Math.abs(0.215+ Math.abs(turn) + test));
+//                robot.motorAux.setPower(test);
+                test = test + 0.0012;
+//                robot.startMove(driveSpeed, 0, turn);
+            }
+            else if (currentBrightness < (bar)) {
+                if (state != 2) {test = 0;}
+                state = 2;
+                robot.motorLeft.setPower(-1*Math.abs( 0.245 +(test+Math.abs(turn))));
+                robot.motorRight.setPower(Math.abs(0.01 /*+((test-Math.abs(turn))/diffDivider)*/));
+                test = test + 0.0012;
+//                robot.motorAux.setPower(-1*test);
+//                robot.startMove(driveSpeed, 0, -1*turn);
+            } else {
+                state = 0;
+                test = 0;
+                robot.motorLeft.setPower(-0.05);
+                robot.motorRight.setPower(0.05);
+                sumError = 0;
+            }
+//            sleep(18 - Math.round(timer.milliseconds()));
+        }
+        robot.startMove(0,0,0);
+        sleep(500*1000);
     }
 }
 
