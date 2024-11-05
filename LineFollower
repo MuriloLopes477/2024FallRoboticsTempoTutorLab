@@ -1,0 +1,24 @@
+package edu.elon.robotics.auto;
+
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+
+@Autonomous(name="line_follower", group = "labs")
+
+public class LineFollower extends AutoCommon{
+    @Override
+    public void runOpMode() throws InterruptedException {
+        super.runOpMode();
+        waitForStart();
+        lineFollowerCalibration();
+        telemetry.addData("max_alpha", robot.maxBrightness);
+        telemetry.addData("min_alpha", robot.minBrightness);
+        telemetry.update();
+        sleep(3500);
+//        while(true) {
+//            telemetry.addData("current_alpha", robot.colorSensor.alpha());
+//            telemetry.update();
+//        }
+        followPID();
+    }
+
+}
