@@ -7,6 +7,7 @@ package edu.elon.robotics;
 
 import android.media.MediaPlayer;
 
+import com.qualcomm.hardware.rev.Rev2mDistanceSensor;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.hardware.rev.RevTouchSensor;
 import com.qualcomm.robotcore.hardware.ColorSensor;
@@ -26,7 +27,7 @@ public class RobotHardware {
     public DcMotor motorRight;
     public DcMotor motorAux;
     public IMU imu;
-    private KiwiDriveRatio ratio;
+    public KiwiDriveRatio ratio;
 
     public static final double TICKS_PER_ROTATION = 537.7;
     public final double WHEEL_CIRCUMFERENCE = 29.1593; // in centimeters
@@ -46,11 +47,14 @@ public class RobotHardware {
     public int maxRed;
     public int minRed;
 
+    public Rev2mDistanceSensor distanceSensor;
+
     public RobotHardware(HardwareMap hardwareMap, boolean isAuto) {
 
         // external sensors
         touchSensor = hardwareMap.get(RevTouchSensor.class, "touchSensor");
         colorSensor = hardwareMap.get(ColorSensor.class, "colorSensor");
+        distanceSensor = hardwareMap.get(Rev2mDistanceSensor.class, "distanceSensor");
 
         /*
          * This code provides an object to control the physical
