@@ -1,0 +1,20 @@
+package edu.elon.robotics.auto;
+
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+
+@Autonomous(name="parking", group = "labs")
+
+public class Parking extends AutoCommon {
+    @Override
+    public void runOpMode() throws InterruptedException {
+        super.runOpMode();
+        waitForStart();
+        while (opModeIsActive()) {
+            telemetry.addData("distance", robot.distanceSensor.getDistance(DistanceUnit.CM));
+            telemetry.update();
+        }
+
+    }
+}
